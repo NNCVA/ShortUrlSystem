@@ -9,6 +9,7 @@ import com.example.shorturl.mapper.ShortLinkMapper;
 import com.example.shorturl.service.ShortLinkService;
 import com.example.shorturl.util.ShortCodeGenerator;
 import lombok.RequiredArgsConstructor;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -141,8 +142,8 @@ public class ShortLinkServiceImpl implements ShortLinkService {
             throw new BusinessException(ErrorCode.SHORT_LINK_DISABLED);
         }
 
-        // 增加点击次数
-        shortLinkMapper.incrementClickCount(shortLink.getId());
+        // 异步增加点击次数
+        incrementClickCountAsync(shortLink.getId());
 
         return shortLink.getOriginalUrl();
     }
@@ -159,5 +160,15 @@ public class ShortLinkServiceImpl implements ShortLinkService {
             }
         }
         throw new BusinessException(ErrorCode.SHORT_CODE_EXISTS);
+    }
+
+    @Override
+    @Async
+    public void incrementClickCountAsync(Long id) {
+        try {
+            shortLinkMapper.incrementClickCount(id);
+        } catch (Exception e) {
+            // 异步更新失败时记录日志，不影响主流程
+        }
     }
 }

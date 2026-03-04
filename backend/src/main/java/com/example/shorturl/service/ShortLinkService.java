@@ -46,4 +46,9 @@ public interface ShortLinkService {
      * 根据短码获取原始URL并增加点击数
      */
     String getOriginalUrlByShortCode(String shortCode);
+
+    /**
+     * 异步增加点击数
+     */
+    void incrementClickCountAsync(Long id);
 }
