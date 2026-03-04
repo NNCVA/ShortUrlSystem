@@ -9,12 +9,10 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.IOException;
 import java.util.Map;
 
 /**
@@ -98,18 +96,17 @@ public class ShortLinkController {
     }
 
     /**
-     * 短链接跳转（302重定向）
+     * 短链接跳转（返回JSON，由前端处理跳转）
      */
     @Operation(
         summary = "短链接跳转",
-        description = "根据短码跳转到原始URL，自动增加点击次数（302重定向）"
+        description = "根据短码获取原始URL，自动增加点击次数"
     )
     @SecurityRequirement(name = "")
     @GetMapping("/s/{shortCode}")
-    public void redirect(
-            @Parameter(description = "6位短码") @PathVariable String shortCode,
-            HttpServletResponse response) throws IOException {
+    public ApiResponse<String> redirect(
+            @Parameter(description = "6位短码") @PathVariable String shortCode) {
         String originalUrl = shortLinkService.getOriginalUrlByShortCode(shortCode);
-        response.sendRedirect(originalUrl);
+        return ApiResponse.success(originalUrl);
     }
 }

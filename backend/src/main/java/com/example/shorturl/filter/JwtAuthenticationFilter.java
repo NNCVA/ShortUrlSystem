@@ -28,7 +28,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
 
         // 排除不需要认证的路径
-        if (isExcludedPath(path)) {
+        if (isExcludedPath(path, request)) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -59,10 +59,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     /**
      * 判断是否为排除路径
+     * 公开接口：登录、短链接跳转、创建短链接（Demo页）
      */
-    private boolean isExcludedPath(String path) {
+    private boolean isExcludedPath(String path, HttpServletRequest request) {
+        boolean isPostLinks = path.equals("/api/links") && "POST".equalsIgnoreCase(request.getMethod());
         return path.equals("/api/auth/login")
             || path.startsWith("/api/s/")
+            || isPostLinks
             || path.startsWith("/swagger-ui")
             || path.startsWith("/v3/api-docs")
             || path.equals("/api-docs")
