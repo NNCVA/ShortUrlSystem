@@ -163,6 +163,15 @@ import { Plus } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 import { ShortLinkApi, ShortLink, CreateShortLinkRequest } from '@/api/shortlink'
 
+// 防抖函数
+const debounce = <T extends (...args: any[]) => any>(fn: T, delay: number) => {
+  let timer: ReturnType<typeof setTimeout> | null = null
+  return (...args: Parameters<T>) => {
+    if (timer) clearTimeout(timer)
+    timer = setTimeout(() => fn(...args), delay)
+  }
+}
+
 const router = useRouter()
 const authStore = useAuthStore()
 
@@ -234,9 +243,14 @@ async function fetchList() {
   }
 }
 
-function handleSearch() {
+// 防抖搜索
+const debouncedSearch = debounce(() => {
   page.value = 1
   fetchList()
+}, 300)
+
+function handleSearch() {
+  debouncedSearch()
 }
 
 function handleAdd() {
