@@ -23,6 +23,9 @@ public class JwtUtil {
     @Value("${jwt.expiration}")
     private Long expiration;
 
+    @Value("${jwt.refresh-expiration}")
+    private Long refreshExpiration;
+
     /**
      * 生成密钥
      */
@@ -31,7 +34,7 @@ public class JwtUtil {
     }
 
     /**
-     * 生成 JWT Token
+     * 生成 Access Token（短期令牌）
      */
     public String generateToken(User user) {
         Date now = new Date();
@@ -41,6 +44,22 @@ public class JwtUtil {
                 .subject(user.getId().toString())
                 .claim("username", user.getUsername())
                 .claim("role", user.getRole())
+                .issuedAt(now)
+                .expiration(expiryDate)
+                .signWith(getSigningKey())
+                .compact();
+    }
+
+    /**
+     * 生成 Refresh Token（长期令牌）
+     */
+    public String generateRefreshToken(User user) {
+        Date now = new Date();
+        Date expiryDate = new Date(now.getTime() + refreshExpiration);
+
+        return Jwts.builder()
+                .subject(user.getId().toString())
+                .claim("type", "refresh")
                 .issuedAt(now)
                 .expiration(expiryDate)
                 .signWith(getSigningKey())
@@ -93,5 +112,26 @@ public class JwtUtil {
             return null;
         }
         return claims.get("role", String.class);
+    }
+
+    /**
+     * 验证 Refresh Token
+     */
+    public Claims validateRefreshToken(String token) {
+        try {
+            Claims claims = Jwts.parser()
+                    .verifyWith(getSigningKey())
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+            // 验证是否为 refresh token
+            String type = claims.get("type", String.class);
+            if (!"refresh".equals(type)) {
+                return null;
+            }
+            return claims;
+        } catch (Exception e) {
+            return null;
+        }
     }
 }

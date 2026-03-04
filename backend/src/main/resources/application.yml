@@ -23,7 +23,8 @@ server:
 
 jwt:
   secret: your-256-bit-secret-key-change-this-in-production-environment-32chars
-  expiration: 7200000  # 2小时（毫秒）
+  expiration: 1800000      # 30分钟（毫秒）Access Token 有效期
+  refresh-expiration: 604800000  # 7天（毫秒）Refresh Token 有效期
 
 springdoc:
   api-docs:

@@ -1,8 +1,10 @@
 package com.example.shorturl.controller;
 
 import com.example.shorturl.dto.request.LoginRequest;
+import com.example.shorturl.dto.request.RefreshTokenRequest;
 import com.example.shorturl.dto.response.ApiResponse;
 import com.example.shorturl.dto.response.LoginResponse;
+import com.example.shorturl.dto.response.RefreshTokenResponse;
 import com.example.shorturl.dto.response.UserInfoResponse;
 import com.example.shorturl.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -63,5 +65,19 @@ public class AuthController {
     @PostMapping("/logout")
     public ApiResponse<Void> logout() {
         return ApiResponse.success();
+    }
+
+    /**
+     * 刷新 Access Token
+     */
+    @Operation(
+        summary = "刷新 Access Token",
+        description = "使用 Refresh Token 获取新的 Access Token"
+    )
+    @SecurityRequirement(name = "")
+    @PostMapping("/refresh")
+    public ApiResponse<RefreshTokenResponse> refresh(@Valid @RequestBody RefreshTokenRequest request) {
+        RefreshTokenResponse response = authService.refresh(request);
+        return ApiResponse.success(response);
     }
 }
