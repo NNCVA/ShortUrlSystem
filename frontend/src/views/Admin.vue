@@ -1,68 +1,93 @@
 <template>
   <div class="admin-container">
-    <el-container>
-      <el-header>
-        <div class="header-content">
-          <h2>ShortURL Pro 管理后台</h2>
-          <div class="user-info">
-            <span>欢迎，{{ authStore.userInfo?.username }}</span>
-            <el-button type="danger" link @click="handleLogout">
-              退出登录
-            </el-button>
-          </div>
+    <!-- 顶部导航 -->
+    <header class="admin-header">
+      <div class="header-content">
+        <div class="logo-section">
+          <span class="logo-icon">🔗</span>
+          <h2 class="system-title">ShortURL Pro</h2>
+          <span class="badge">管理后台</span>
         </div>
-      </el-header>
+        <div class="user-section">
+          <div class="user-avatar">
+            {{ authStore.userInfo?.username?.charAt(0).toUpperCase() }}
+          </div>
+          <span class="welcome-text">欢迎，{{ authStore.userInfo?.username }}</span>
+          <el-button type="danger" size="small" class="logout-btn" @click="handleLogout">
+            退出登录
+          </el-button>
+        </div>
+      </div>
+    </header>
 
-      <el-main>
-        <el-card>
-          <template #header>
-            <div class="toolbar">
+    <!-- 主内容区 -->
+    <main class="admin-main">
+      <el-card class="table-card">
+        <template #header>
+          <div class="toolbar">
+            <div class="search-wrapper">
               <el-input
                 v-model="searchName"
                 placeholder="搜索名称..."
                 prefix-icon="Search"
                 clearable
-                style="width: 200px"
+                class="search-input"
                 @input="handleSearch"
               />
-              <el-button type="primary" @click="handleAdd">
-                <el-icon><Plus /></el-icon>
-                新增短链接
-              </el-button>
             </div>
-          </template>
+            <el-button type="primary" class="add-btn" @click="handleAdd">
+              <el-icon><Plus /></el-icon>
+              新增短链接
+            </el-button>
+          </div>
+        </template>
 
-          <el-table
-            v-loading="loading"
-            :data="tableData"
-            stripe
-            style="width: 100%"
-          >
-            <el-table-column prop="id" label="ID" width="60" />
-            <el-table-column prop="name" label="名称" min-width="120" />
-            <el-table-column prop="originalUrl" label="原始链接" min-width="200">
-              <template #default="{ row }">
-                <el-text truncated style="max-width: 200px">
-                  {{ row.originalUrl }}
-                </el-text>
-              </template>
-            </el-table-column>
-            <el-table-column prop="shortCode" label="短码" width="100">
-              <template #default="{ row }">
-                <el-tag>{{ row.shortCode }}</el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column prop="status" label="状态" width="80">
-              <template #default="{ row }">
-                <el-tag :type="row.status === 'ENABLED' ? 'success' : 'danger'">
-                  {{ row.status === 'ENABLED' ? '启用' : '禁用' }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column prop="clickCount" label="点击数" width="80" />
-            <el-table-column prop="createdAt" label="创建时间" width="160" />
-            <el-table-column label="操作" width="200" fixed="right">
-              <template #default="{ row }">
+        <el-table
+          v-loading="loading"
+          :data="tableData"
+          stripe
+          class="custom-table"
+        >
+          <el-table-column label="ID" width="60">
+            <template #default="{ $index }">
+              <span class="row-index">{{ (page - 1) * pageSize + $index + 1 }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="name" label="名称" min-width="100">
+            <template #default="{ row }">
+              <span class="link-name">{{ row.name }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="originalUrl" label="原始链接" min-width="150">
+            <template #default="{ row }">
+              <el-text truncated style="max-width: 300px" class="original-url">
+                {{ row.originalUrl }}
+              </el-text>
+            </template>
+          </el-table-column>
+          <el-table-column prop="shortCode" label="短码" width="120">
+            <template #default="{ row }">
+              <el-tag class="short-code-tag">{{ row.shortCode }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="status" label="状态" width="90">
+            <template #default="{ row }">
+              <el-tag
+                :class="['status-tag', row.status === 'ENABLED' ? 'status-enabled' : 'status-disabled']"
+              >
+                {{ row.status === 'ENABLED' ? '启用' : '禁用' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="clickCount" label="点击" width="80">
+            <template #default="{ row }">
+              <span class="click-count">{{ row.clickCount }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="createdAt" label="创建时间" width="180" :formatter="formatDateTime" />
+          <el-table-column label="操作" width="200" fixed="right">
+            <template #default="{ row }">
+              <div class="action-buttons">
                 <el-button type="primary" link @click="handleEdit(row)">
                   编辑
                 </el-button>
@@ -76,29 +101,33 @@
                 <el-button type="danger" link @click="handleDelete(row)">
                   删除
                 </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
+              </div>
+            </template>
+          </el-table-column>
+        </el-table>
 
+        <div class="pagination-wrapper">
           <el-pagination
             v-model:current-page="page"
             v-model:page-size="pageSize"
             :total="total"
             :page-sizes="[10, 20, 50]"
             layout="total, sizes, prev, pager, next, jumper"
-            style="margin-top: 20px; justify-content: center"
+            background
+            class="custom-pagination"
             @size-change="fetchList"
             @current-change="fetchList"
           />
-        </el-card>
-      </el-main>
-    </el-container>
+        </div>
+      </el-card>
+    </main>
 
     <!-- 新增/编辑弹窗 -->
     <el-dialog
       v-model="dialogVisible"
       :title="isEdit ? '编辑短链接' : '新增短链接'"
       width="500px"
+      class="custom-dialog"
     >
       <el-form
         ref="formRef"
@@ -136,6 +165,19 @@ import { ShortLinkApi, ShortLink, CreateShortLinkRequest } from '@/api/shortlink
 
 const router = useRouter()
 const authStore = useAuthStore()
+
+// 格式化时间函数：yyyy-mm-dd hh-mm-ss
+const formatDateTime = (_row: ShortLink, _column: any, cellValue: string) => {
+  if (!cellValue) return ''
+  const date = new Date(cellValue)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  const seconds = String(date.getSeconds()).padStart(2, '0')
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+}
 
 const loading = ref(false)
 const tableData = ref<ShortLink[]>([])
@@ -179,11 +221,11 @@ async function fetchList() {
   loading.value = true
   try {
     const res = await ShortLinkApi.list({
-      name: searchName.value || undefined,
+      keyword: searchName.value || undefined,
       page: page.value,
       pageSize: pageSize.value
     })
-    tableData.value = res.data.list
+    tableData.value = res.data.items
     total.value = res.data.total
   } catch (error) {
     console.error('获取列表失败:', error)
@@ -287,44 +329,270 @@ async function handleLogout() {
 <style scoped>
 .admin-container {
   min-height: 100vh;
-  background: #f5f7fa;
+  background: linear-gradient(180deg, rgba(255, 126, 159, 0.05) 0%, rgba(90, 228, 168, 0.05) 100%);
 }
 
-.el-container {
-  min-height: 100vh;
-}
-
-.el-header {
-  background: #fff;
-  border-bottom: 1px solid #e4e7ed;
+/* 顶部导航 */
+.admin-header {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
+  padding: 0 30px;
+  box-shadow: 0 4px 20px rgba(255, 126, 159, 0.3);
 }
 
 .header-content {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  height: 100%;
+  height: 64px;
 }
 
-.header-content h2 {
+.logo-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo-icon {
+  font-size: 28px;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+.system-title {
+  font-family: 'Poppins', sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: white;
   margin: 0;
-  font-size: 20px;
-  color: #303133;
 }
 
-.user-info {
+.badge {
+  background: rgba(255, 255, 255, 0.25);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.user-section {
   display: flex;
   align-items: center;
   gap: 16px;
 }
 
-.el-main {
-  padding: 20px;
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.5);
 }
 
+.welcome-text {
+  color: white;
+  font-weight: 500;
+}
+
+.logout-btn {
+  background: rgba(255, 255, 255, 0.2) !important;
+  border: 1px solid rgba(255, 255, 255, 0.5) !important;
+  color: white !important;
+  transition: all 0.3s ease !important;
+}
+
+.logout-btn:hover {
+  background: rgba(255, 255, 255, 0.35) !important;
+  transform: translateY(-2px);
+}
+
+/* 主内容区 */
+.admin-main {
+  padding: 30px;
+}
+
+/* 表格卡片 */
+.table-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--glass-shadow);
+  animation: cardEnter 0.5s ease-out;
+}
+
+@keyframes cardEnter {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 工具栏 */
 .toolbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.search-wrapper {
+  flex: 1;
+  max-width: 300px;
+}
+
+.search-input {
+  border-radius: var(--radius-md) !important;
+}
+
+.add-btn {
+  background: var(--gradient-btn) !important;
+  border: none !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: 0 4px 15px rgba(255, 126, 159, 0.4) !important;
+  transition: all 0.3s ease !important;
+}
+
+.add-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 126, 159, 0.5) !important;
+}
+
+/* 表格样式 */
+.custom-table {
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.row-index {
+  color: var(--color-text-light);
+  font-weight: 500;
+}
+
+.link-name {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.original-url {
+  color: var(--color-text-secondary);
+}
+
+.short-code-tag {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-accent)) !important;
+  border: none !important;
+  color: white !important;
+  font-weight: 600;
+}
+
+.status-tag {
+  border: none !important;
+  font-weight: 500;
+}
+
+.status-enabled {
+  background: linear-gradient(135deg, #5AE4A8, #4FD1C5) !important;
+  color: white !important;
+}
+
+.status-disabled {
+  background: linear-gradient(135deg, #FC8181, #F56565) !important;
+  color: white !important;
+}
+
+.click-count {
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.action-buttons .el-button {
+  padding: 4px 8px;
+}
+
+/* 编辑按钮 - 白色 */
+.action-buttons .el-button--primary,
+.action-buttons .el-button[type="primary"] {
+  color: white !important;
+}
+
+/* 启用/禁用按钮 - 薄荷绿 */
+.action-buttons .el-button[type="success"] {
+  color: var(--color-secondary);
+}
+
+/* 禁用按钮 - 珊瑚粉 */
+.action-buttons .el-button[type="warning"] {
+  color: var(--color-primary);
+}
+
+/* 删除按钮 - 薰衣草紫 */
+.action-buttons .el-button[type="danger"] {
+  color: var(--color-accent);
+}
+
+/* 分页 */
+.pagination-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: 24px;
+}
+
+.custom-pagination {
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.custom-pagination .el-pager li.is-active {
+  background: var(--gradient-btn) !important;
+}
+
+/* 弹窗样式 */
+.custom-dialog .el-dialog {
+  border-radius: var(--radius-lg) !important;
+  overflow: hidden;
+}
+
+.custom-dialog .el-dialog__header {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-accent)) !important;
+  padding: 20px !important;
+  margin: 0 !important;
+}
+
+.custom-dialog .el-dialog__title {
+  color: white !important;
+  font-family: 'Poppins', sans-serif !important;
+  font-weight: 600 !important;
+}
+
+.custom-dialog .el-dialog__headerbtn .el-dialog__close {
+  color: white !important;
+}
+
+.custom-dialog .el-dialog__body {
+  padding: 24px !important;
+}
+
+.custom-dialog .el-dialog__footer {
+  padding: 16px 24px !important;
 }
 </style>

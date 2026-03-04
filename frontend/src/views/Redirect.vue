@@ -44,8 +44,8 @@ onMounted(async () => {
   }
 
   try {
-    // 直接发送请求获取原始URL
-    const response = await axios.get(`${baseURL}/${shortCode}`, {
+    // 调用后端 API 获取原始URL
+    const response = await axios.get(`${baseURL}/api/s/${shortCode}`, {
       timeout: 5000,
       validateStatus: (status) => status < 500
     })
@@ -60,8 +60,8 @@ onMounted(async () => {
         throw new Error('未找到重定向地址')
       }
     } else if (response.status === 200 && response.data.code === 200) {
-      // 如果后端返回的是JSON格式的数据
-      const originalUrl = response.data.data?.originalUrl
+      // 后端返回JSON格式的数据，data直接是原始URL
+      const originalUrl = response.data.data
       if (originalUrl) {
         window.location.href = originalUrl
       } else {
