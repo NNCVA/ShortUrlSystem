@@ -50,7 +50,7 @@ http.interceptors.response.use(
       } else if (status === 404) {
         ElMessage.error('资源不存在')
       } else {
-        ElMessage.error(error.response.data?.message || '请求失败')
+        ElMessage.error((error.response.data as { message?: string })?.message || '请求失败')
       }
     } else {
       ElMessage.error('网络错误，请检查网络连接')

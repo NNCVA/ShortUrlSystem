@@ -12,7 +12,8 @@ export interface ShortLink {
 }
 
 export interface ShortLinkListQuery {
-  name?: string
+  keyword?: string
+  status?: string
   page?: number
   pageSize?: number
 }
@@ -35,6 +36,7 @@ export interface UpdateShortLinkRequest {
 }
 
 export interface GenerateRequest {
+  name: string
   originalUrl: string
 }
 
@@ -47,33 +49,33 @@ export interface GenerateResponse {
 export const ShortLinkApi = {
   // 获取短链接列表
   list: (params?: ShortLinkListQuery) =>
-    http.get<any, any>('/api/shortlinks', { params }),
+    http.get<any, any>('/api/links', { params }),
 
   // 创建短链接
   create: (data: CreateShortLinkRequest) =>
-    http.post<any, any>('/api/shortlinks', data),
+    http.post<any, any>('/api/links', data),
 
   // 更新短链接
   update: (id: number, data: UpdateShortLinkRequest) =>
-    http.put<any, any>(`/api/shortlinks/${id}`, data),
+    http.put<any, any>(`/api/links/${id}`, data),
 
   // 删除短链接
   remove: (id: number) =>
-    http.delete<any, any>(`/api/shortlinks/${id}`),
+    http.delete<any, any>(`/api/links/${id}`),
 
   // 启用短链接
   enable: (id: number) =>
-    http.patch<any, any>(`/api/shortlinks/${id}/enable`),
+    http.patch<any, any>(`/api/links/${id}/toggle`),
 
   // 禁用短链接
   disable: (id: number) =>
-    http.patch<any, any>(`/api/shortlinks/${id}/disable`),
+    http.patch<any, any>(`/api/links/${id}/toggle`),
 
   // 演示页生成短码（公开）
   generate: (data: GenerateRequest) =>
-    http.post<any, any>('/api/shortlinks/generate', data),
+    http.post<any, any>('/api/links', data),
 
   // 跳转（获取原始URL）
   redirect: (shortCode: string) =>
-    http.get<any, any>(`/${shortCode}`, { timeout: 5000 })
+    http.get<any, any>(`/api/s/${shortCode}`, { timeout: 5000 })
 }

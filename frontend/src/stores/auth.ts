@@ -2,13 +2,20 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { AuthApi, LoginRequest, UserInfo } from '@/api/auth'
 
+// 安全解析 localStorage 中的 JSON
+function getStoredUserInfo(): UserInfo | null {
+  const stored = localStorage.getItem('userInfo')
+  if (!stored || stored === 'undefined' || stored === 'null') return null
+  try {
+    return JSON.parse(stored)
+  } catch {
+    return null
+  }
+}
+
 export const useAuthStore = defineStore('auth', () => {
   const token = ref<string>(localStorage.getItem('token') || '')
-  const userInfo = ref<UserInfo | null>(
-    localStorage.getItem('userInfo')
-      ? JSON.parse(localStorage.getItem('userInfo')!)
-      : null
-  )
+  const userInfo = ref<UserInfo | null>(getStoredUserInfo())
 
   const isLogin = computed(() => !!token.value)
   const isAdmin = computed(() => userInfo.value?.role === 'ADMIN')
@@ -16,7 +23,7 @@ export const useAuthStore = defineStore('auth', () => {
   async function login(loginData: LoginRequest) {
     const res = await AuthApi.login(loginData)
     token.value = res.data.token
-    userInfo.value = res.data.userInfo
+    userInfo.value = res.data.user
     localStorage.setItem('token', token.value)
     localStorage.setItem('userInfo', JSON.stringify(userInfo.value))
   }
