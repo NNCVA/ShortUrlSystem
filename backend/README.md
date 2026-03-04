@@ -4,7 +4,7 @@
 
 ## 技术栈
 
-- **框架**: Spring Boot 3.4.0
+- **框架**: Spring Boot 3.2.5
 - **数据库**: MySQL 8
 - **ORM**: MyBatis 3.0.3
 - **认证**: JWT (jjwt 0.12.5)
@@ -26,11 +26,13 @@ backend/
 │   ├── dto/                             # 数据传输对象
 │   │   ├── request/
 │   │   │   ├── LoginRequest.java
+│   │   │   ├── RefreshTokenRequest.java
 │   │   │   ├── CreateShortLinkRequest.java
 │   │   │   └── UpdateShortLinkRequest.java
 │   │   └── response/
 │   │       ├── ApiResponse.java
 │   │       ├── LoginResponse.java
+│   │       ├── RefreshTokenReponse.java
 │   │       ├── UserInfoResponse.java
 │   │       └── ShortLinkResponse.java
 │   ├── controller/                      # 控制器
@@ -48,6 +50,7 @@ backend/
 │   ├── config/                          # 配置类
 │   │   ├── CorsConfig.java
 │   │   ├── WebConfig.java
+│   │   ├── MyBatisConfig.java           # MyBatis 配置
 │   │   ├── PasswordEncoderConfig.java
 │   │   └── OpenApiConfig.java           # Swagger/OpenAPI 配置
 │   ├── filter/                          # 过滤器
@@ -139,6 +142,7 @@ Content-Type: application/json
   "message": "success",
   "data": {
     "token": "eyJhbGc...",
+    "refreshToken": "eyJhbGc...",
     "user": {
       "id": 1,
       "username": "admin",
@@ -183,12 +187,37 @@ Authorization: Bearer <token>
 }
 ```
 
+#### 4. 刷新 Access Token
+```
+POST /api/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "eyJhbGc..."
+}
+
+响应:
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "token": "eyJhbGc..."
+  },
+  "timestamp": "2025-06-01T10:30:00"
+}
+```
+
 ### 短链接接口
 
-#### 1. 创建短链接
+> **特性说明**：短链接跳转时使用 `@Async` 异步更新点击数，不阻塞主流程，提升访问性能。
+
+
+
+#### 1. 创建短链接（可选认证）
+
 ```
 POST /api/links
-Authorization: Bearer <token>
+Authorization: Bearer <token>  # 可选，不传也可创建公开短链接
 Content-Type: application/json
 
 {
@@ -216,7 +245,7 @@ Content-Type: application/json
 
 #### 2. 获取短链接列表
 ```
-GET /api/links?page=1&size=10&keyword=官网&status=ENABLED
+GET /api/links?page=1&pageSize=10&keyword=官网&status=ENABLED
 Authorization: Bearer <token>
 
 响应:
@@ -290,6 +319,8 @@ GET /{shortCode}
 示例: http://localhost:5173/rU8Vq1
 ```
 
+这种方式生成的短链接格式为前端地址（如 `http://localhost:5173/rU8Vq1`），可以隐藏后端服务端口。
+
 **方式二：直接调用后端 API**
 
 ```
@@ -313,14 +344,24 @@ GET /api/s/{shortCode}
 ```yaml
 jwt:
   secret: your-256-bit-secret-key-change-this-in-production-environment-32chars
-  expiration: 7200000  # 2小时（毫秒）
+  expiration: 1800000        # 30分钟（毫秒）Access Token 有效期
+  refresh-expiration: 604800000  # 7天（毫秒）Refresh Token 有效期
 ```
+
+**说明：**
+- Access Token：短期令牌，用于 API 认证，有效期 30 分钟
+- Refresh Token：长期令牌，用于刷新 Access Token，有效期 7 天
+- 前端会自动使用 Refresh Token 刷新过期的 Access Token
 
 **注意**: 生产环境请使用环境变量或配置中心管理 JWT Secret。
 
 ### CORS 配置
 
-默认允许 `http://localhost:5173` 跨域访问，可在 `CorsConfig.java` 中修改。
+默认允许以下前端端口跨域访问，可在 `WebConfig.java` 中修改：
+
+- `http://localhost:5173`
+- `http://localhost:5174`
+- `http://localhost:5175`
 
 ## 错误码说明
 
