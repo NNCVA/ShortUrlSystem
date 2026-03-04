@@ -279,10 +279,29 @@ Authorization: Bearer <token>
 ```
 
 #### 7. 短链接跳转（无需认证）
-```
-GET /api/s/rU8Vq1
 
-响应: 302 重定向到原始 URL
+**方式一：通过前端页面跳转（推荐）**
+
+访问前端地址，前端会调用后端 API 获取原始 URL 并跳转：
+
+```
+GET /{shortCode}
+
+示例: http://localhost:5173/rU8Vq1
+```
+
+**方式二：直接调用后端 API**
+
+```
+GET /api/s/{shortCode}
+
+响应（200）:
+{
+  "code": 200,
+  "message": "success",
+  "data": "https://www.zstu.edu.cn",
+  "timestamp": "2025-06-01T10:30:00"
+}
 ```
 
 ## 配置说明
