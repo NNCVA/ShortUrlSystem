@@ -37,15 +37,38 @@ http.interceptors.response.use(
     }
     return response.data
   },
-  (error: AxiosError) => {
+  async (error: AxiosError) => {
     const authStore = useAuthStore()
+    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean }
+
+    // 判断是否为 401 且不是刷新 token 的请求
+    if (error.response?.status === 401 && originalRequest && !originalRequest.url?.includes('/auth/refresh')) {
+      // 如果还没有重试过，尝试刷新 token
+      if (!originalRequest._retry) {
+        originalRequest._retry = true
+        try {
+          const refreshed = await authStore.refreshTokenFunc()
+          if (refreshed) {
+            // 刷新成功，重新设置 Authorization 头
+            originalRequest.headers.Authorization = `Bearer ${authStore.token}`
+            // 重新发送请求
+            return http(originalRequest)
+          }
+        } catch {
+          // 刷新失败，继续执行后面的登出逻辑
+        }
+      }
+      // 刷新失败或已经重试过，跳转登录页
+      ElMessage.error('登录已过期，请重新登录')
+      authStore.logout()
+      router.push('/login')
+      return Promise.reject(error)
+    }
+
+    // 非 401 错误或其他情况
     if (error.response) {
       const status = error.response.status
-      if (status === 401) {
-        ElMessage.error('登录已过期，请重新登录')
-        authStore.logout()
-        router.push('/login')
-      } else if (status === 403) {
+      if (status === 403) {
         ElMessage.error('没有权限访问')
       } else if (status === 404) {
         ElMessage.error('资源不存在')
