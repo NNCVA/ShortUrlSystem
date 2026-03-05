@@ -1,6 +1,6 @@
 # ShortURL Pro — 前后端接口文档
 
-> **版本：** v2.0（含登录鉴权）　**技术栈：** Vue 3 + TypeScript · Spring Boot 3 · MyBatis · MySQL 8 · JWT
+> **版本：** v2.0（含登录鉴权）　**技术栈：** Vue 3 + TypeScript · Spring Boot 3 · MyBatis · MySQL 8 · Redis · JWT
 >
 > 浙江理工大学 · 数字化共享生产实践课程
 
@@ -32,7 +32,7 @@
 | 数据格式 | Request / Response 均为 JSON，UTF-8 编码 |
 | 认证方式 | JWT Bearer Token（登录后获取，写入请求头） |
 | 请求头字段 | `Authorization: Bearer <token>` |
-| Token 有效期 | 默认 2 小时，过期须重新登录 |
+| Token 有效期 | Access Token 30 分钟，Refresh Token 7 天，支持自动刷新 |
 | 时间格式 | ISO 8601：`2025-06-01T10:30:00` |
 | 跨域 | 后端配置 CORS 允许 `http://localhost:5173` |
 
@@ -157,13 +157,13 @@ Content-Type: application/json
   "code": 200,
   "message": "登录成功",
   "data": {
-    "token":     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIi...",
-    "tokenType": "Bearer",
-    "expiresIn": 7200,
-    "userInfo": {
+    "token":        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIi...",
+    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIi...",
+    "user": {
       "id":       1,
       "username": "admin",
-      "role":     "ADMIN"
+      "role":     "ADMIN",
+      "createdAt": "2025-06-01T10:00:00"
     }
   }
 }
@@ -237,28 +237,74 @@ JWT 为无状态认证，后端登出接口仅做形式响应。**真正的登�
 
 ---
 
-## 五、短链接接口详细说明
+### 4.4 `POST /api/auth/refresh` — 刷新 Access Token
 
-> 🔒 **以下所有 `/api/shortlinks` 接口均需携带：`Authorization: Bearer <token>`，否则返回 401。**
-> 
-> 仅 `POST /api/shortlinks/generate` 和 `GET /:shortCode` 为公开接口。
+> 🔓 **公开接口，无需携带 Token，使用 Refresh Token**
+
+**请求体（JSON）**
+
+| 字段名 | 类型 | 必填 | 说明 |
+|--------|------|------|------|
+| `refreshToken` | string | 是 | Refresh Token（登录时获取） |
+
+**请求示例**
+
+```http
+POST /api/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIi..."
+}
+```
+
+**成功响应（200）**
+
+```json
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIi..."
+  }
+}
+```
+
+**失败响应（401）**
+
+```json
+{
+  "code": 401,
+  "message": "Token 无效或已过期",
+  "data": null
+}
+```
 
 ---
 
-### 5.1 `GET /api/shortlinks` — 查询列表
+## 五、短链接接口详细说明
+
+> 🔒 **以下所有 `/api/links` 接口均需携带：`Authorization: Bearer <token>`，否则返回 401。**
+>
+> 仅 `POST /api/links`（演示页）和 `GET /api/s/:shortCode` 为公开接口。
+
+---
+
+### 5.1 `GET /api/links` — 查询列表
 
 **Query 参数**
 
 | 参数名 | 类型 | 必填 | 默认值 | 说明 |
 |--------|------|------|--------|------|
 | `keyword` | string | 否 | — | 按名称或 URL 模糊搜索 |
+| `status` | string | 否 | — | 按状态筛选：`ENABLED` / `DISABLED` |
 | `page` | number | 否 | `1` | 页码，从 1 开始 |
 | `pageSize` | number | 否 | `10` | 每页条数 |
 
 **请求示例**
 
 ```http
-GET /api/shortlinks?name=官网&page=1&pageSize=10
+GET /api/links?keyword=官网&page=1&pageSize=10
 Authorization: Bearer <token>
 ```
 
@@ -269,9 +315,9 @@ Authorization: Bearer <token>
   "code": 200,
   "message": "success",
   "data": {
-    "total":    25,
-    "page":     1,
-    "pageSize": 10,
+    "total": 25,
+    "page": 1,
+    "size": 10,
     "items": [
       {
         "id":          1,
@@ -290,7 +336,7 @@ Authorization: Bearer <token>
 
 ---
 
-### 5.2 `POST /api/shortlinks` — 新增
+### 5.2 `POST /api/links` — 新增
 
 **请求体（JSON）**
 
@@ -302,7 +348,7 @@ Authorization: Bearer <token>
 **请求示例**
 
 ```http
-POST /api/shortlinks
+POST /api/links
 Authorization: Bearer <token>
 Content-Type: application/json
 
@@ -343,12 +389,12 @@ Content-Type: application/json
 
 ---
 
-### 5.3 `PUT /api/shortlinks/:id` — 编辑
+### 5.3 `PUT /api/links/:id` — 编辑
 
 **请求示例**
 
 ```http
-PUT /api/shortlinks/10
+PUT /api/links/10
 Authorization: Bearer <token>
 Content-Type: application/json
 
@@ -377,12 +423,12 @@ Content-Type: application/json
 
 ---
 
-### 5.4 `DELETE /api/shortlinks/:id` — 删除
+### 5.4 `DELETE /api/links/:id` — 删除
 
 **请求示例**
 
 ```http
-DELETE /api/shortlinks/10
+DELETE /api/links/10
 Authorization: Bearer <token>
 ```
 
@@ -400,47 +446,35 @@ Authorization: Bearer <token>
 
 ---
 
-### 5.5 `PATCH /api/shortlinks/:id/enable` — 启用
+### 5.5 `PATCH /api/links/:id/toggle` — 切换状态
 
-> 无需请求体
+> 无需请求体。切换短链接的启用/禁用状态。
 
 ```http
-PATCH /api/shortlinks/10/enable
+PATCH /api/links/10/toggle
 Authorization: Bearer <token>
 ```
 
 ```json
-{ "code": 200, "message": "已启用", "data": { "id": 10, "status": "ENABLED" } }
+{ "code": 200, "message": "success", "data": { "id": 10, "status": "ENABLED" } }
 ```
 
 ---
 
-### 5.6 `PATCH /api/shortlinks/:id/disable` — 禁用
-
-> 无需请求体
-
-```http
-PATCH /api/shortlinks/10/disable
-Authorization: Bearer <token>
-```
-
-```json
-{ "code": 200, "message": "已禁用", "data": { "id": 10, "status": "DISABLED" } }
-```
-
----
-
-### 5.7 `POST /api/shortlinks/generate` — 演示页生成短码
+### 5.6 `POST /api/links` — 演示页生成短码
 
 > 🔓 **公开接口，无需 Token**
 
 **请求示例**
 
 ```http
-POST /api/shortlinks/generate
+POST /api/links
 Content-Type: application/json
 
-{ "originalUrl": "https://www.zstu.edu.cn/very/long/path" }
+{
+  "name":        "官网首页",
+  "originalUrl": "https://www.zstu.edu.cn/very/long/path"
+}
 ```
 
 **成功响应（200）**
@@ -448,36 +482,41 @@ Content-Type: application/json
 ```json
 {
   "code": 200,
-  "message": "生成成功",
+  "message": "success",
   "data": {
+    "id":          1,
+    "name":        "官网首页",
+    "originalUrl": "https://www.zstu.edu.cn/very/long/path",
     "shortCode":   "Kx3mZpAB",
-    "shortUrl":    "http://localhost:8080/Kx3mZpAB",
-    "originalUrl": "https://www.zstu.edu.cn/very/long/path"
+    "status":      "ENABLED",
+    "clickCount":  0,
+    "createdAt":   "2025-06-01T14:00:00",
+    "updatedAt":   "2025-06-01T14:00:00"
   }
 }
 ```
 
 ---
 
-### 5.8 `GET /:shortCode` — 短链接跳转
+### 5.7 `GET /api/s/:shortCode` — 获取原始URL
 
-> 🔓 **公开接口，挂载于根路径，无需 Token**
+> 🔓 **公开接口，无需 Token**
 
-系统支持两种跳转方式：
-
-**方式一：通过前端页面跳转（推荐）**
-
-访问前端地址，前端调用后端 API 获取原始 URL 并跳转：
+直接调用后端 API 获取原始 URL：
 
 ```http
-GET /{shortCode}
-示例: http://localhost:5173/Kx3mZpAB
+GET /api/s/Kx3mZpAB
 ```
 
-**方式二：直接调用后端 API**
+**成功响应（200）**
 
-```http
-GET /api/s/{shortCode}
+```json
+{
+  "code": 200,
+  "message": "success",
+  "data": "https://www.zstu.edu.cn",
+  "timestamp": "2025-06-01T10:30:00"
+}
 ```
 
 | 情况 | HTTP 状态 | 行为 |
@@ -485,6 +524,8 @@ GET /api/s/{shortCode}
 | 短码存在且 `ENABLED` | `200` | 返回 JSON，前端获取原始 URL 后跳转 |
 | 短码存在但 `DISABLED` | `403` | 返回 JSON：链接已被禁用 |
 | 短码不存在 | `404` | 返回 JSON：链接不存在 |
+
+> **推荐跳转方式**：使用前端页面跳转（访问 `http://localhost:5173/Kx3mZpAB`），可隐藏后端端口。
 
 ---
 
@@ -494,24 +535,26 @@ GET /api/s/{shortCode}
 
 ```
 src/
-├── api/
+├── api/                 # API 接口封装
 │   ├── http.ts          # Axios 封装 + 拦截器
 │   ├── auth.ts          # 登录 / 登出 / me 接口
-│   └── shorturl.ts      # 短链接 CRUD 接口
-├── stores/
-│   └── auth.ts          # Pinia：存储 token + userInfo
-├── router/
-│   └── index.ts         # 路由守卫（未登录跳 /login）
-├── mocks/
-│   ├── index.ts         # Mock 入口
-│   ├── auth.ts          # Mock 登录接口
-│   └── shorturl.ts      # Mock 短链接接口
-└── pages/
-    ├── login/LoginPage.vue
-    ├── demo/DemoPage.vue
-    └── admin/
-        ├── ListPage.vue
-        └── EditModal.vue
+│   └── shortlink.ts     # 短链接 CRUD 接口
+├── stores/              # Pinia 状态管理
+│   └── auth.ts          # 认证状态 + Token 刷新
+├── router/              # 路由配置
+│   └── index.ts         # 路由 + 守卫
+├── views/               # 页面组件
+│   ├── Login.vue        # 登录页
+│   ├── Demo.vue         # 演示页（公开）
+│   ├── Admin.vue        # 管理后台
+│   └── Redirect.vue     # 跳转页
+├── mocks/               # Mock 接口
+│   ├── index.ts
+│   ├── auth.ts
+│   └── shortlink.ts
+├── main.ts              # 入口文件
+├── App.vue              # 根组件
+└── env.d.ts             # 环境变量类型
 ```
 
 ### 6.2 Pinia 认证 Store
@@ -702,8 +745,8 @@ if (import.meta.env.VITE_USE_MOCK === 'true') {
 ### 7.1 数据库建表 SQL
 
 ```sql
-CREATE DATABASE IF NOT EXISTS short_url_db CHARACTER SET utf8mb4;
-USE short_url_db;
+CREATE DATABASE IF NOT EXISTS shorturl_db CHARACTER SET utf8mb4;
+USE shorturl_db;
 
 -- 用户表
 CREATE TABLE users (
@@ -748,22 +791,22 @@ CREATE TABLE short_links (
   <scope>runtime</scope>
 </dependency>
 
-<!-- JWT（jjwt 0.12.6） -->
+<!-- JWT（jjwt 0.12.5） -->
 <dependency>
   <groupId>io.jsonwebtoken</groupId>
   <artifactId>jjwt-api</artifactId>
-  <version>0.12.6</version>
+  <version>0.12.5</version>
 </dependency>
 <dependency>
   <groupId>io.jsonwebtoken</groupId>
   <artifactId>jjwt-impl</artifactId>
-  <version>0.12.6</version>
+  <version>0.12.5</version>
   <scope>runtime</scope>
 </dependency>
 <dependency>
   <groupId>io.jsonwebtoken</groupId>
   <artifactId>jjwt-jackson</artifactId>
-  <version>0.12.6</version>
+  <version>0.12.5</version>
   <scope>runtime</scope>
 </dependency>
 
@@ -772,6 +815,24 @@ CREATE TABLE short_links (
   <groupId>org.springframework.security</groupId>
   <artifactId>spring-security-crypto</artifactId>
 </dependency>
+
+<!-- Redis Support -->
+<dependency>
+  <groupId>org.springframework.boot</groupId>
+  <artifactId>spring-boot-starter-data-redis</artifactId>
+</dependency>
+
+<!-- Spring Cache抽象 -->
+<dependency>
+  <groupId>org.springframework.boot</groupId>
+  <artifactId>spring-boot-starter-cache</artifactId>
+</dependency>
+
+<!-- Redis连接池 -->
+<dependency>
+  <groupId>org.apache.commons</groupId>
+  <artifactId>commons-pool2</artifactId>
+</dependency>
 ```
 
 ### 7.3 application.yml 配置
@@ -779,7 +840,7 @@ CREATE TABLE short_links (
 ```yaml
 spring:
   datasource:
-    url: jdbc:mysql://localhost:3306/short_url_db?useUnicode=true&characterEncoding=utf8
+    url: jdbc:mysql://localhost:3306/shorturl_db?useUnicode=true&characterEncoding=utf8
     username: root
     password: your_password
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -791,45 +852,64 @@ mybatis:
     map-underscore-to-camel-case: true   # 下划线自动转驼峰（short_code → shortCode）
 
 jwt:
-  secret-key: YourSuperSecretKeyMustBeAtLeast32Characters!!
-  expiration: 7200                       # 单位：秒（2 小时）
+  secret: your-256-bit-secret-key-change-this-in-production-environment-32chars
+  expiration: 1800000      # 30分钟（毫秒）Access Token 有效期
+  refresh-expiration: 604800000  # 7天（毫秒）Refresh Token 有效期                     # 单位：秒（2 小时）
 
 server:
   port: 8080
+
+# Redis 配置
+spring.data.redis:
+  host: localhost
+  port: 6379
+  database: 1
+  lettuce.pool:
+    max-active: 8
+    max-idle: 8
+    min-idle: 2
 ```
 
 ### 7.4 项目结构
 
 ```
 src/main/java/com/example/shorturl/
-├── controller/
+├── controller/           # 控制器
 │   ├── AuthController.java
 │   └── ShortLinkController.java
-├── service/
+├── service/              # 业务逻辑
 │   ├── AuthService.java
-│   └── ShortLinkService.java
-├── mapper/
+│   ├── ShortLinkService.java
+│   └── impl/            # 实现类
+├── mapper/               # MyBatis Mapper
 │   ├── UserMapper.java
 │   └── ShortLinkMapper.java
-├── entity/
+├── entity/               # 实体类
 │   ├── User.java
 │   └── ShortLink.java
-├── dto/
-│   ├── LoginRequest.java
-│   ├── LoginResponse.java
-│   └── ShortLinkRequest.java
-├── config/
-│   └── WebConfig.java          # CORS + Filter 注册
-├── filter/
-│   └── JwtFilter.java
-├── util/
-│   └── JwtUtil.java
-└── ShortUrlApplication.java
+├── dto/                  # 数据传输对象
+│   ├── request/
+│   └── response/
+├── config/                # 配置类
+│   ├── CorsConfig.java
+│   ├── WebConfig.java
+│   ├── MyBatisConfig.java
+│   ├── PasswordEncoderConfig.java
+│   ├── OpenApiConfig.java
+│   └── RedisConfig.java  # Redis 缓存配置
+├── filter/                # 过滤器
+│   └── JwtAuthenticationFilter.java
+├── util/                  # 工具类
+│   ├── JwtUtil.java
+│   └── ShortCodeGenerator.java
+└── exception/             # 异常处理
+    ├── GlobalExceptionHandler.java
+    ├── BusinessException.java
+    └── ErrorCode.java
 
 src/main/resources/
-├── mapper/
-│   ├── UserMapper.xml
-│   └── ShortLinkMapper.xml
+├── mapper/                # MyBatis XML
+├── schema.sql             # 数据库建表脚本
 └── application.yml
 ```
 
@@ -839,27 +919,22 @@ src/main/resources/
 // JwtUtil.java
 @Component
 public class JwtUtil {
-    @Value("${jwt.secret-key}") private String secretKey;
-    @Value("${jwt.expiration}") private long   expiration;
+    @Value("${jwt.secret}")
+    private String secret;
 
-    public String generateToken(Long userId, String username, String role) {
-        return Jwts.builder()
-            .subject(String.valueOf(userId))
-            .claim("username", username)
-            .claim("role",     role)
-            .issuedAt(new Date())
-            .expiration(new Date(System.currentTimeMillis() + expiration * 1000))
-            .signWith(Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8)))
-            .compact();
+    @Value("${jwt.expiration}")
+    private Long expiration;
+
+    @Value("${jwt.refresh-expiration}")
+    private Long refreshExpiration;
+
+    /**
+     * 生成密钥
+     */
+    private SecretKey getSigningKey() {
+        return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
-    public Claims parseToken(String token) {
-        return Jwts.parser()
-            .verifyWith(Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8)))
-            .build()
-            .parseSignedClaims(token)
-            .getPayload();
-    }
 }
 ```
 
@@ -1033,15 +1108,33 @@ private String generateShortCode() {
 | `POST` | `/api/auth/login` | ❌ | 用户登录，返回 JWT | 登录页提交 |
 | `GET` | `/api/auth/me` | ✅ | 获取当前用户信息 | 页面初始化 |
 | `POST` | `/api/auth/logout` | ✅ | 登出（前端清 Token） | 导航栏退出按钮 |
-| `GET` | `/api/shortlinks?keyword=&page=&pageSize=` | ✅ | 查询列表（可搜索） | 列表页加载 / 搜索 |
-| `POST` | `/api/shortlinks` | ✅ | 新增短链接 | 新增弹窗提交 |
-| `PUT` | `/api/shortlinks/:id` | ✅ | 编辑短链接 | 编辑弹窗提交 |
-| `DELETE` | `/api/shortlinks/:id` | ✅ | 删除短链接 | 删除确认 |
-| `PATCH` | `/api/shortlinks/:id/enable` | ✅ | 启用 | 行内启用按钮 |
-| `PATCH` | `/api/shortlinks/:id/disable` | ✅ | 禁用 | 行内禁用按钮 |
-| `POST` | `/api/shortlinks/generate` | ❌ | 演示页生成短码 | 演示页「生成」按钮 |
+| `POST` | `/api/auth/refresh` | ❌ | 刷新 Access Token | 401 自动刷新 |
+| `GET` | `/api/links?keyword=&page=&pageSize=` | ✅ | 查询列表（可搜索） | 列表页加载 / 搜索 |
+| `POST` | `/api/links` | ✅ | 新增短链接 | 新增弹窗提交 |
+| `PUT` | `/api/links/:id` | ✅ | 编辑短链接 | 编辑弹窗提交 |
+| `DELETE` | `/api/links/:id` | ✅ | 删除短链接 | 删除确认 |
+| `PATCH` | `/api/links/:id/toggle` | ✅ | 切换状态 | 行内切换按钮 |
+| `POST` | `/api/links` | ❌ | 演示页生成短码 | 演示页「生成」按钮 |
 | `GET` | `/:shortCode` | ❌ | 前端页面跳转 | 浏览器直接访问（推荐） |
 | `GET` | `/api/s/:shortCode` | ❌ | API 跳转 | 返回 JSON |
+
+---
+
+### 7.12 Redis 缓存策略
+
+系统使用 Redis 缓存热点数据，提升访问性能：
+
+| 缓存名称 | TTL | 说明 |
+|---------|-----|------|
+| `shortLinkByCode` | 10分钟 | 短链接按短码查询（高频访问） |
+| `userByUsername` | 30分钟 | 用户按用户名查询（登录时使用） |
+
+**缓存失效时机：**
+- 更新短链接 → 清除 `shortLinkByCode` 缓存
+- 删除短链接 → 清除 `shortLinkByCode` 缓存
+- 切换状态 → 清除 `shortLinkByCode` 缓存
+
+**注意：** 首次启动前需确保 Redis 服务已运行。
 
 ---
 
