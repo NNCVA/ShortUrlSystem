@@ -40,8 +40,8 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public LoginResponse login(LoginRequest request) {
-        // 查询用户（走缓存）- 通过代理对象调用
-        User user = authService.findUserByUsername(request.getUsername());
+        // 查询用户（直接查数据库，避免缓存中password被@JsonIgnore忽略）
+        User user = userMapper.selectByUsername(request.getUsername());
         if (user == null) {
             throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
         }
