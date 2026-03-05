@@ -14,6 +14,8 @@ import com.example.shorturl.util.JwtUtil;
 import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -21,17 +23,25 @@ import org.springframework.stereotype.Service;
  * 认证服务实现
  */
 @Service
-@RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
 
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final AuthService authService;
+
+    public AuthServiceImpl(UserMapper userMapper, PasswordEncoder passwordEncoder,
+                          JwtUtil jwtUtil, @Lazy AuthService authService) {
+        this.userMapper = userMapper;
+        this.passwordEncoder = passwordEncoder;
+        this.jwtUtil = jwtUtil;
+        this.authService = authService;
+    }
 
     @Override
     public LoginResponse login(LoginRequest request) {
-        // 查询用户
-        User user = userMapper.selectByUsername(request.getUsername());
+        // 查询用户（走缓存）- 通过代理对象调用
+        User user = authService.findUserByUsername(request.getUsername());
         if (user == null) {
             throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
         }
@@ -75,6 +85,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public UserInfoResponse getCurrentUser(Long userId) {
+        // 查询用户
         User user = userMapper.selectById(userId);
         if (user == null) {
             throw new BusinessException(ErrorCode.USER_NOT_FOUND);
@@ -84,4 +95,18 @@ public class AuthServiceImpl implements AuthService {
         BeanUtils.copyProperties(user, userInfo);
         return userInfo;
     }
+
+    /**
+     * 按用户名查询 - 走缓存
+     */
+    @Cacheable(value = "userByUsername", key = "#username")
+    public User findUserByUsername(String username) {
+        return userMapper.selectByUsername(username);
+    }
+
+    @Override
+    public User findUserById(Long id) {
+        return userMapper.selectById(id);
+    }
+
 }

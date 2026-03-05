@@ -9,6 +9,8 @@ import com.example.shorturl.mapper.ShortLinkMapper;
 import com.example.shorturl.service.ShortLinkService;
 import com.example.shorturl.util.ShortCodeGenerator;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -79,6 +81,7 @@ public class ShortLinkServiceImpl implements ShortLinkService {
 
     @Override
     @Transactional
+    @CacheEvict(value = {"shortLinkByCode"}, allEntries = true)
     public ShortLink update(Long id, UpdateShortLinkRequest request) {
         // 检查短链接是否存在
         ShortLink shortLink = getById(id);
@@ -103,6 +106,7 @@ public class ShortLinkServiceImpl implements ShortLinkService {
 
     @Override
     @Transactional
+    @CacheEvict(value = {"shortLinkByCode"}, allEntries = true)
     public void delete(Long id) {
         // 检查短链接是否存在
         getById(id);
@@ -113,6 +117,7 @@ public class ShortLinkServiceImpl implements ShortLinkService {
 
     @Override
     @Transactional
+    @CacheEvict(value = {"shortLinkByCode"}, allEntries = true)
     public ShortLink toggleStatus(Long id) {
         // 检查短链接是否存在
         ShortLink shortLink = getById(id);
@@ -130,6 +135,7 @@ public class ShortLinkServiceImpl implements ShortLinkService {
 
     @Override
     @Transactional
+    @Cacheable(value = "shortLinkByCode", key = "#shortCode")
     public String getOriginalUrlByShortCode(String shortCode) {
         // 查询短链接
         ShortLink shortLink = shortLinkMapper.selectByShortCode(shortCode);

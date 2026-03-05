@@ -7,6 +7,7 @@
 - **框架**: Spring Boot 3.2.5
 - **数据库**: MySQL 8
 - **ORM**: MyBatis 3.0.3
+- **缓存**: Redis + Spring Cache
 - **认证**: JWT (jjwt 0.12.5)
 - **密码加密**: BCrypt (Spring Security Crypto)
 - **参数校验**: Jakarta Validation
@@ -52,7 +53,8 @@ backend/
 │   │   ├── WebConfig.java
 │   │   ├── MyBatisConfig.java           # MyBatis 配置
 │   │   ├── PasswordEncoderConfig.java
-│   │   └── OpenApiConfig.java           # Swagger/OpenAPI 配置
+│   │   ├── OpenApiConfig.java           # Swagger/OpenAPI 配置
+│   │   └── RedisConfig.java             # Redis 缓存配置
 │   ├── filter/                          # 过滤器
 │   │   └── JwtAuthenticationFilter.java
 │   ├── util/                            # 工具类
@@ -77,6 +79,7 @@ backend/
 
 - JDK 17+
 - MySQL 8.0+
+- Redis 6.0+（用于缓存）
 - Maven 3.6+
 
 ### 2. 数据库配置
@@ -352,6 +355,30 @@ jwt:
 - Access Token：短期令牌，用于 API 认证，有效期 30 分钟
 - Refresh Token：长期令牌，用于刷新 Access Token，有效期 7 天
 - 前端会自动使用 Refresh Token 刷新过期的 Access Token
+
+### Redis 配置
+
+在 `application.yml` 中配置：
+
+```yaml
+spring.data.redis:
+  host: localhost
+  port: 6379
+  database: 0
+  lettuce.pool:
+    max-active: 8
+    max-idle: 8
+    min-idle: 2
+```
+
+**缓存策略：**
+
+| 缓存名称 | TTL | 说明 |
+|---------|-----|------|
+| shortLinkByCode | 10分钟 | 短链接按短码查询（高频访问） |
+| userByUsername | 30分钟 | 用户按用户名查询（登录时使用） |
+
+**注意**：首次启动前需确保 Redis 服务已启动。
 
 **注意**: 生产环境请使用环境变量或配置中心管理 JWT Secret。
 
