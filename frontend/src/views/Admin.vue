@@ -122,34 +122,89 @@
       </el-card>
     </main>
 
-    <!-- 新增/编辑弹窗 -->
+    <!-- 新增/编辑弹窗（马卡龙风格） -->
     <el-dialog
       v-model="dialogVisible"
       :title="isEdit ? '编辑短链接' : '新增短链接'"
       width="500px"
-      class="custom-dialog"
+      class="macaron-dialog"
+      :close-on-click-modal="false"
+      draggable
+      :show-close="false"
     >
+      <!-- 糖果装饰 -->
+      <div class="candy-decor">🍬 🌸 ✨</div>
+
       <el-form
         ref="formRef"
         :model="form"
         :rules="rules"
         label-position="top"
+        class="macaron-form"
+        size="default"
       >
-        <el-form-item label="名称" prop="name">
-          <el-input v-model="form.name" placeholder="请输入短链接名称" />
-        </el-form-item>
-        <el-form-item label="原始链接" prop="originalUrl">
-          <el-input
-            v-model="form.originalUrl"
-            placeholder="请输入完整的原始链接（http:// 或 https:// 开头）"
-          />
-        </el-form-item>
+        <!-- 短链接名称 -->
+        <div class="field-group">
+          <div class="field-label">
+            <span class="required">*</span>
+            短链接名称
+            <span class="label-badge">{{ form.name.length }}/50</span>
+          </div>
+          <div class="input-wrapper">
+            <span class="input-icon">📁</span>
+            <el-input
+              v-model="form.name"
+              placeholder="请输入便于识别的短链接名称（如：官网首页）"
+              class="macaron-input"
+              :maxlength="50"
+            />
+          </div>
+        </div>
+
+        <!-- 原始链接 -->
+        <div class="field-group">
+          <div class="field-label">
+            <span class="required">*</span>
+            原始链接
+          </div>
+          <div class="input-wrapper">
+            <span class="input-icon">🔗</span>
+            <el-input
+              v-model="form.originalUrl"
+              placeholder="请输入完整的原始链接（http:// 或 https:// 开头）"
+              class="macaron-input url-input"
+            />
+          </div>
+        </div>
+
+        <!-- 信息提示卡片 -->
+        <div class="info-tip">
+          <span class="tip-icon">ℹ️</span>
+          <span class="tip-text">支持 http/https 协议，建议检查链接可访问性后再提交</span>
+        </div>
       </el-form>
+
+      <!-- 装饰分隔线 -->
+      <div class="macaron-divider"></div>
+
+      <!-- 底部按钮区 -->
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitLoading" @click="handleSubmit">
-          确定
-        </el-button>
+        <div class="macaron-footer">
+          <el-button
+            class="macaron-cancel"
+            @click="dialogVisible = false"
+          >
+            取消
+          </el-button>
+          <el-button
+            type="primary"
+            :loading="submitLoading"
+            class="macaron-confirm"
+            @click="handleSubmit"
+          >
+            {{ isEdit ? '保存修改' : '创建短链接' }}
+          </el-button>
+        </div>
       </template>
     </el-dialog>
   </div>
@@ -580,33 +635,306 @@ async function handleLogout() {
   background: var(--gradient-btn) !important;
 }
 
-/* 弹窗样式 */
-.custom-dialog .el-dialog {
-  border-radius: var(--radius-lg) !important;
+/* ========== 马卡龙弹窗样式 ========== */
+.macaron-dialog.el-dialog {
+  border-radius: 28px !important;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.82) !important;
+  backdrop-filter: blur(20px);
+  border: 1.5px solid rgba(255, 255, 255, 0.9) !important;
+  box-shadow: 0 20px 60px rgba(196, 181, 253, 0.35), 0 6px 20px rgba(249, 168, 201, 0.25) !important;
+}
+
+.macaron-dialog.el-dialog__header {
+  background: linear-gradient(115deg, #F9A8C9 0%, #C4B5FD 55%, #93C5FD 100%) !important;
+  padding: 22px 28px 20px !important;
+  margin: 0 !important;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.macaron-dialog.el-dialog__title {
+  color: white !important;
+  font-family: 'Noto Sans SC', sans-serif !important;
+  font-weight: 700 !important;
+  font-size: 18px !important;
+  letter-spacing: 0.06em;
+  text-shadow: 0 1px 6px rgba(130, 80, 160, 0.18);
+}
+
+.macaron-dialog.el-dialog__headerbtn {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  display: none;
+}
+
+.macaron-dialog.el-dialog__headerbtn .el-dialog__close {
+  color: white !important;
+  font-size: 15px !important;
+  font-weight: 700;
+  transition: all 0.2s ease;
+  width: 28px;
+  height: 28px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.macaron-dialog.el-dialog__headerbtn .el-dialog__close:hover {
+  background: rgba(255, 255, 255, 0.5);
+  transform: rotate(90deg);
+}
+
+.macaron-dialog.el-dialog__body {
+  padding: 28px 28px 10px !important;
+  background: transparent !important;
+}
+
+/* 糖果装饰 */
+.candy-decor {
+  position: absolute;
+  top: -28px;
+  right: 24px;
+  font-size: 20px;
+  letter-spacing: 4px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* 头部装饰圆圈 */
+.macaron-dialog.el-dialog__header::after {
+  content: '';
+  position: absolute;
+  right: -30px;
+  top: -30px;
+  width: 110px;
+  height: 110px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+/* 表单容器 */
+.macaron-form {
+  margin: 0;
+}
+
+/* 表单分组 */
+.field-group {
+  margin-bottom: 22px;
+}
+
+/* 表单标签 */
+.field-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #4B3F6B;
+  letter-spacing: 0.04em;
+  margin-bottom: 10px;
+}
+
+.field-label .required {
+  color: #F9A8C9;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.field-label .label-badge {
+  background: linear-gradient(135deg, #fce7f3, #ede9fe);
+  color: #7C6FAA;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 20px;
+  margin-left: auto;
+}
+
+/* 输入框容器 */
+.input-wrapper {
+  position: relative;
+}
+
+.input-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 16px;
+  pointer-events: none;
+  opacity: 0.7;
+  z-index: 1;
+}
+
+/* 马卡龙输入框 */
+.macaron-input {
+  width: 100%;
+  padding: 13px 14px 13px 42px !important;
+  background: linear-gradient(135deg, rgba(252, 231, 243, 0.5), rgba(237, 233, 254, 0.5)) !important;
+  border: 1.8px solid rgba(196, 181, 253, 0.35) !important;
+  border-radius: 14px !important;
+  font-family: inherit !important;
+  font-size: 14px !important;
+  color: #4B3F6B !important;
+  outline: none !important;
+  transition: border-color 0.25s, box-shadow 0.25s, background 0.25s !important;
+  caret-color: #C4B5FD;
+  height: auto !important;
+  line-height: 1.5 !important;
+}
+
+.macaron-input::placeholder {
+  color: #B8AED4;
+  font-size: 13px;
+}
+
+.macaron-input:hover {
+  border-color: rgba(196, 181, 253, 0.6) !important;
+}
+
+.macaron-input:focus {
+  border-color: #C4B5FD !important;
+  background: linear-gradient(135deg, rgba(253, 242, 248, 0.8), rgba(245, 243, 255, 0.8)) !important;
+  box-shadow: 0 0 0 4px rgba(196, 181, 253, 0.18), 0 2px 12px rgba(196, 181, 253, 0.15) !important;
+}
+
+.url-input {
+  padding-right: 14px !important;
+}
+
+/* 输入框内部前缀 */
+.macaron-input :deep(.el-input__wrapper) {
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+.macaron-input :deep(.el-input__inner) {
+  color: #4B3F6B !important;
+}
+
+.macaron-input :deep(.el-input__inner)::placeholder {
+  color: #B8AED4 !important;
+}
+
+/* 信息提示卡片 */
+.info-tip {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: linear-gradient(135deg, rgba(186, 230, 253, 0.35), rgba(167, 243, 208, 0.25));
+  border: 1.5px solid rgba(147, 197, 253, 0.4);
+  border-radius: 12px;
+  padding: 11px 14px;
+  margin-bottom: 8px;
+}
+
+.info-tip .tip-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.info-tip .tip-text {
+  font-size: 12.5px;
+  color: #4A7FA5;
+  line-height: 1.55;
+  font-weight: 400;
+}
+
+/* 装饰分隔线 */
+.macaron-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(196, 181, 253, 0.3) 30%, rgba(249, 168, 201, 0.3) 70%, transparent);
+  margin: 0 28px;
+}
+
+/* 底部按钮区 */
+.macaron-footer {
+  padding: 18px 28px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+/* 取消按钮 */
+.macaron-cancel {
+  padding: 11px 24px !important;
+  background: rgba(237, 233, 254, 0.6) !important;
+  border: 1.5px solid rgba(196, 181, 253, 0.4) !important;
+  border-radius: 999px !important;
+  color: #7C6FAA !important;
+  font-family: inherit !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s !important;
+  letter-spacing: 0.03em;
+}
+
+.macaron-cancel:hover {
+  background: rgba(237, 233, 254, 0.9) !important;
+  transform: translateY(-1px);
+}
+
+/* 确认按钮 */
+.macaron-confirm {
+  padding: 11px 28px !important;
+  background: linear-gradient(135deg, #F9A8C9 0%, #C4B5FD 100%) !important;
+  border: none !important;
+  border-radius: 999px !important;
+  color: #fff !important;
+  font-family: inherit !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(196, 181, 253, 0.45), 0 2px 6px rgba(249, 168, 201, 0.3) !important;
+  transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s !important;
+  letter-spacing: 0.05em;
+  position: relative;
   overflow: hidden;
 }
 
-.custom-dialog .el-dialog__header {
-  background: linear-gradient(135deg, var(--color-primary), var(--color-accent)) !important;
-  padding: 20px !important;
-  margin: 0 !important;
+.macaron-confirm::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.25), transparent);
+  border-radius: inherit;
 }
 
-.custom-dialog .el-dialog__title {
-  color: white !important;
-  font-family: 'Poppins', sans-serif !important;
-  font-weight: 600 !important;
+.macaron-confirm:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(196, 181, 253, 0.5) !important;
 }
 
-.custom-dialog .el-dialog__headerbtn .el-dialog__close {
-  color: white !important;
+.macaron-confirm:active:not(:disabled) {
+  transform: translateY(0);
 }
 
-.custom-dialog .el-dialog__body {
-  padding: 24px !important;
+.macaron-confirm:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
-.custom-dialog .el-dialog__footer {
-  padding: 16px 24px !important;
+/* 响应式适配 */
+@media (max-width: 576px) {
+  .macaron-dialog.el-dialog {
+    width: 92vw !important;
+    margin: 0 auto;
+  }
+
+  .macaron-footer {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
 }
 </style>

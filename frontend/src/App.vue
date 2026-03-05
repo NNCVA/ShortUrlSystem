@@ -144,6 +144,8 @@ body {
   background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
   margin: 0 !important;
   padding: 20px !important;
+  border-top-left-radius: var(--radius-lg);
+  border-top-right-radius: var(--radius-lg);
 }
 
 .el-dialog__title {
