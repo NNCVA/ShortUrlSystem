@@ -6,6 +6,24 @@
 
 基于 Vue 3 + Spring Boot 的短链接管理平台，支持短链接生成、跳转管理、点击统计等功能。
 
+## 页面预览
+
+### 首页 - 短链接生成器
+
+![首页](screenshots/home.png)
+
+### 首页 - 生成结果
+
+![首页生成结果](screenshots/home-result.png)
+
+### 管理后台登录
+
+![登录页](screenshots/login.png)
+
+### 管理后台 - 短链接列表
+
+![管理后台](screenshots/admin.png)
+
 ## 技术栈
 
 ### 前端
@@ -33,6 +51,11 @@ ShortUrlSystem/
 ├── frontend/         # 前端项目
 │   ├── src/
 │   └── package.json
+├── screenshots/                   # 页面截图
+│   ├── home.png
+│   ├── home-result.png
+│   ├── login.png
+│   └── admin.png
 ├── ShortURLPro接口文档v2.md    # 接口文档
 └── README.md         # 本文件
 ```
