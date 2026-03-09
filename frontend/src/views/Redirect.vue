@@ -31,7 +31,8 @@ const loading = ref(true)
 const error = ref(false)
 const errorMessage = ref('')
 
-const baseURL = import.meta.env.VITE_API_BASE || 'http://localhost:8080'
+// 生产环境使用相对路径（通过Nginx代理），开发环境使用配置的后端地址
+const baseURL = import.meta.env.PROD ? '' : (import.meta.env.VITE_API_BASE || 'http://localhost:8080')
 
 onMounted(async () => {
   const shortCode = route.params.shortCode as string

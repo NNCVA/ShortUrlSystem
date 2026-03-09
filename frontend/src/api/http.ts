@@ -3,7 +3,8 @@ import { ElMessage } from 'element-plus'
 import router from '@/router'
 import { useAuthStore } from '@/stores/auth'
 
-const baseURL = import.meta.env.VITE_API_BASE || 'http://localhost:8080'
+// 生产环境使用空字符串（相对路径，通过Nginx代理），开发环境使用配置的后端地址
+const baseURL = import.meta.env.PROD ? '' : (import.meta.env.VITE_API_BASE || 'http://localhost:8080')
 
 const http: AxiosInstance = axios.create({
   baseURL,
