@@ -495,6 +495,62 @@ curl -X POST http://localhost:8080/api/links \
 http://localhost:8080/api-docs
 ```
 
+## Docker 部署
+
+### 构建 Docker 镜像
+
+```bash
+cd backend
+docker build -t shorturl-backend:latest .
+```
+
+### 运行容器
+
+```bash
+docker run -d \
+  --name shorturl-backend \
+  -p 8080:8080 \
+  -e SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/shorturl_db?useUnicode=true\&characterEncoding=utf8\&useSSL=false\&serverTimezone=Asia/Shanghai \
+  -e SPRING_DATASOURCE_USERNAME=root \
+  -e SPRING_DATASOURCE_PASSWORD=root123456 \
+  -e SPRING_DATA_REDIS_HOST=redis \
+  -e SPRING_DATA_REDIS_PORT=6379 \
+  --network shorturl-network \
+  shorturl-backend:latest
+```
+
+### 环境变量说明
+
+| 变量名 | 说明 | 默认值 |
+|--------|------|--------|
+| SPRING_DATASOURCE_URL | 数据库连接地址 | jdbc:mysql://localhost:3306/shorturl_db |
+| SPRING_DATASOURCE_USERNAME | 数据库用户名 | root |
+| SPRING_DATASOURCE_PASSWORD | 数据库密码 | - |
+| SPRING_DATA_REDIS_HOST | Redis 主机地址 | localhost |
+| SPRING_DATA_REDIS_PORT | Redis 端口 | 6379 |
+
+### 端口说明
+
+| 端口 | 说明 |
+|------|------|
+| 8080 | 后端服务端口 |
+
+### 多阶段构建说明
+
+后端 Dockerfile 使用多阶段构建：
+- 阶段1：使用 Maven 构建应用
+- 阶段2：使用 JRE 运行应用（镜像更小）
+
+### 使用 Docker Compose 部署
+
+项目根目录已提供 `docker-compose.yml`，可一键启动所有服务：
+
+```bash
+docker-compose up -d
+```
+
+详见项目根目录 `README.md` 中的 Docker 部署说明。
+
 ## 许可证
 
 本项目为浙江理工大学数字化共享生产实践课程作业。

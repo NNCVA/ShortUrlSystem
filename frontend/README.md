@@ -210,6 +210,91 @@ proxy: {
 7. **搜索防抖**：管理后台搜索框有 300ms 防抖，避免频繁请求
 8. **Redis 缓存**：后端使用 Redis 缓存短链接（按短码）和用户（按用户名），需确保 Redis 服务正常运行
 
+## Docker 部署
+
+### 构建 Docker 镜像
+
+```bash
+cd frontend
+docker build -t shorturl-frontend:latest .
+```
+
+### 运行容器
+
+```bash
+docker run -d \
+  --name shorturl-frontend \
+  -p 80:80 \
+  --network shorturl-network \
+  shorturl-frontend:latest
+```
+
+### 端口说明
+
+| 端口 | 说明 |
+|------|------|
+| 80 | Nginx 服务端口 |
+
+### Nginx 配置说明
+
+前端使用 Nginx 作为 Web 服务器，配置文件位于 `nginx.conf`：
+
+```nginx
+server {
+    listen 80;
+    server_name localhost;
+
+    # 前端静态文件
+    location / {
+        root /usr/share/nginx/html;
+        index index.html;
+        try_files $uri $uri/ /index.html;
+    }
+
+    # API 代理 - 后端服务
+    location /api/ {
+        proxy_pass http://backend:8080/api/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # 短链接跳转
+    location /s/ {
+        proxy_pass http://backend:8080/s/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_redirect off;
+    }
+}
+```
+
+Nginx 功能说明：
+- 静态文件服务：托管 Vue 构建产物
+- API 代理：将 `/api/*` 请求转发到后端
+- 短链接跳转：将 `/s/*` 请求转发到后端
+
+### 生产环境构建
+
+```bash
+# 构建生产版本
+npm run build
+
+# 构建 Docker 镜像
+docker build -t shorturl-frontend:latest .
+```
+
+### 使用 Docker Compose 部署
+
+项目根目录已提供 `docker-compose.yml`，可一键启动所有服务：
+
+```bash
+docker-compose up -d
+```
+
+详见项目根目录 `README.md` 中的 Docker 部署说明。
+
 ## 许可证
 
 本项目为浙江理工大学数字化共享生产实践课程作业。

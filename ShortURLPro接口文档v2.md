@@ -16,7 +16,7 @@
 6. [前端实现指南（Vue 3）](#六前端实现指南vue-3)
 7. [后端实现指南（Spring Boot + MyBatis）](#七后端实现指南spring-boot--mybatis)
 8. [接口速查总表](#八接口速查总表)
-9. [分工任务](#九分工任务)
+9. [docker部署](#九docker-部署指南)
 
 ---
 
@@ -1138,37 +1138,132 @@ private String generateShortCode() {
 
 ---
 
-## 九、分工任务
+## 九、Docker 部署指南
 
-### 前端同学
+### 9.1 环境要求
 
-**主要任务：**
-1. 登录页 + Pinia Token 管理（含 localStorage 持久化）
-2. Axios 拦截器注入 `Authorization` 头
-3. 路由守卫（未登录自动跳转 `/login`）
-4. 管控后台 CRUD + 演示页
-5. Mock 接口（含登录 Mock，默认账号 `admin` / `admin123456`）
+- Docker 20.10+
+- Docker Compose 2.0+
 
-**关键注意事项：**
-- Token 存入 `localStorage`，刷新页面不丢失
-- `401` 响应自动清 Token 并跳转登录页，避免死循环
-- Mock 的字段名须与文档完全一致（`token` 而非 `accessToken`）
-- 联调时只需将 `VITE_USE_MOCK` 改为 `false`，无需改业务代码
+### 9.2 快速启动
 
-### 后端同学
+```bash
+# 进入项目目录
+cd ShortUrlSystem
 
-**主要任务：**
-1. `users` 表 + `short_links` 表建表，插入初始管理员
-2. BCrypt 密码加密（引入 `spring-security-crypto`）
-3. `JwtUtil` 工具类 + `JwtFilter` 过滤器
-4. `AuthController` + `ShortLinkController`
-5. MyBatis Mapper 接口 + XML + CORS 配置
+# 一键启动所有服务
+docker-compose up -d
+```
 
-**关键注意事项：**
-- 密码**绝对不能**明文返回给前端（查询时排除 `password` 字段）
-- 响应体统一使用 `{code, message, data}` 包装
-- 字段名使用驼峰命名（`shortCode` 而非 `short_code`），MyBatis 配置 `map-underscore-to-camel-case: true` 自动转换
-- CORS 配置须包含 `OPTIONS` 方法和 `Authorization` 请求头
+### 9.3 服务访问
+
+| 服务 | 地址 |
+|------|------|
+| 前端页面 | http://localhost |
+| 后端 API | http://localhost:8080 |
+| Swagger UI | http://localhost:8080/swagger-ui.html |
+| MySQL | localhost:3305 |
+| Redis | localhost:6379 |
+
+### 9.4 默认账号
+
+- 用户名：`admin`
+- 密码：`admin123456`
+
+### 9.5 Docker Compose 配置说明
+
+项目使用 `docker-compose.yml` 编排以下服务：
+
+```yaml
+services:
+  mysql:
+    image: mysql:8.0
+    # ...
+
+  redis:
+    image: redis:7-alpine
+    # ...
+
+  backend:
+    build: ./backend
+    # ...
+
+  frontend:
+    build: ./frontend
+    # ...
+```
+
+### 9.6 后端环境变量
+
+| 变量名 | 说明 | 默认值 |
+|--------|------|--------|
+| SPRING_DATASOURCE_URL | 数据库连接地址 | jdbc:mysql://mysql:3306/shorturl_db |
+| SPRING_DATASOURCE_USERNAME | 数据库用户名 | root |
+| SPRING_DATASOURCE_PASSWORD | 数据库密码 | root123456 |
+| SPRING_DATA_REDIS_HOST | Redis 主机 | redis |
+| SPRING_DATA_REDIS_PORT | Redis 端口 | 6379 |
+
+### 9.7 Nginx 配置说明
+
+前端使用 Nginx 作为反向代理（`frontend/nginx.conf`）：
+
+```nginx
+server {
+    listen 80;
+    server_name localhost;
+
+    # 前端静态文件
+    location / {
+        root /usr/share/nginx/html;
+        index index.html;
+        try_files $uri $uri/ /index.html;
+    }
+
+    # API 代理 - 后端服务
+    location /api/ {
+        proxy_pass http://backend:8080/api/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+
+    # 短链接跳转
+    location /s/ {
+        proxy_pass http://backend:8080/s/;
+        proxy_set_header Host $host;
+        proxy_redirect off;
+    }
+}
+```
+
+### 9.8 常用命令
+
+```bash
+# 启动服务
+docker-compose up -d
+
+# 停止服务
+docker-compose down
+
+# 查看日志
+docker-compose logs -f
+
+# 重新构建镜像
+docker-compose build --no-cache
+
+# 查看服务状态
+docker-compose ps
+```
+
+### 9.9 数据持久化
+
+- MySQL 数据卷：`mysql_data`
+- Redis 数据卷：`redis_data`
+
+如需重置数据，可删除对应卷：
+
+```bash
+docker-compose down -v
+```
 
 ---
 
